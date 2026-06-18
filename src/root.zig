@@ -3,9 +3,10 @@ const std = @import("std");
 const glfw = @cImport(@cInclude("GLFW/glfw3.h"));
 const gl = @cImport(@cInclude("glad/glad.h"));
 
-const core = @import("shader.zig");
+pub const core = @import("shader.zig");
+pub const fm = @import("filemanager.zig");
 
-const Error = error{
+pub const EngineError = error{
     FailedToInitializeGLFW, 
     FailedToInitializeGLAD,
     FailedToCreateWindow,
@@ -37,24 +38,23 @@ pub const Engine = struct {
 var engine: ?Engine = null;
 
 pub fn init(args: std.process.Init) void {
-    var debug: std.heap.DebugAllocator(.{}) = .init; 
     engine = Engine {
         .io = args.io,
-        .alloc = debug.allocator(),
+        .alloc = args.gpa,
     };
 }
 
-pub fn io() Error!std.Io {
+pub fn io() EngineError!std.Io {
     if (engine == null) return error.EngineNotInitialized;
     return engine.?.io;
 }
 
-pub fn allocator() Error!std.mem.Allocator {
+pub fn allocator() EngineError!std.mem.Allocator {
     if (engine == null) return error.EngineNotInitialized;
     return engine.?.alloc;
 }
 
-fn linkProgram(program: c_uint) Error!void {
+fn linkProgram(program: c_uint) EngineError!void {
     gl.glLinkProgram(program);
     var success: c_int = undefined;
     gl.glGetProgramiv(program, gl.GL_LINK_STATUS, &success);
@@ -82,22 +82,30 @@ pub fn run() !void {
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) return error.FailedToInitializeGLAD;
 
-    const vert = gl.glCreateShader(gl.GL_VERTEX_SHADER);
-    gl.glShaderSource(vert, 1, &vert_src.ptr, null);
+    const vert: core.ShaderModule = try .initRaw(vert_src, core.ShaderType.Vertex);
+    const frag: core.ShaderModule = try .initRaw(frag_src, core.ShaderType.Fragment);
+
+    var shader: core.Shader = .init();
+    try shader.addModule(vert);
+    try shader.addModule(frag);
+    try shader.assemble();
+
+    //const vert = gl.glCreateShader(gl.GL_VERTEX_SHADER);
+    //gl.glShaderSource(vert, 1, &vert_src.ptr, null);
     //try compileShader(vert);
 
-    const frag = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
-    gl.glShaderSource(frag, 1, &frag_src.ptr, null);
+    //const frag = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
+    //gl.glShaderSource(frag, 1, &frag_src.ptr, null);
     //try compileShader(frag);
 
-    const shader: c_uint = gl.glCreateProgram();
-    gl.glAttachShader(shader, vert);
-    gl.glAttachShader(shader, frag);
-    try linkProgram(shader);
-    defer gl.glDeleteProgram(shader);
+    //const shader: c_uint = gl.glCreateProgram();
+    //gl.glAttachShader(shader, vert);
+    //gl.glAttachShader(shader, frag);
+    //try linkProgram(shader);
+    //defer gl.glDeleteProgram(shader);
 
-    gl.glDeleteShader(vert);
-    gl.glDeleteShader(frag);
+    //gl.glDeleteShader(vert);
+    //gl.glDeleteShader(frag);
 
     const verts = [_]f32{
         -0.5, -0.5, 0.0,
@@ -122,20 +130,19 @@ pub fn run() !void {
     gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
     gl.glEnableVertexAttribArray(0); 
 
-    gl.glUseProgram(shader);
+    shader.bind();
 
     var width: c_int = undefined;
     var height: c_int = undefined;
     glfw.glfwGetWindowSize(window, &width, &height);
     gl.glViewport(0, 0, width, height);
 
-    _ = try core.ShaderModule.init("wow.frag", core.ShaderModuleType.Fragment);
-
     while (glfw.glfwWindowShouldClose(window) == 0) {
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0.4, 0.5, 0, 1);
 
-        gl.glUseProgram(shader);
+        //gl.glUseProgram(shader);
+        shader.bind();
         gl.glBindVertexArray(vao);
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3);
 
