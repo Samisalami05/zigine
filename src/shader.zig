@@ -27,10 +27,9 @@ pub const ShaderModule = struct {
     }
 
     pub fn init(path: []const u8, type_: ShaderType) !Self {
-        const allocator = try engine.allocator();
 
         const source = try engine.fm.readEntireFile(path);
-        defer allocator.free(source);
+        defer engine.allocator().free(source);
 
         return try initRaw(source, type_);
     }
@@ -81,16 +80,16 @@ pub const Shader = struct {
         };
     }
 
-    pub fn deinit(self: *Self) !void {
+    pub fn deinit(self: *Self) void {
         self.disassemble();
         gl.glDeleteProgram(self.handle);
-        self.modules.deinit(try engine.allocator());
+        self.modules.deinit(engine.allocator());
         self.assembled = false;
     }
 
-    pub fn addModule(self: *Self, module: ShaderModule) (ShaderError || engine.EngineError || std.mem.Allocator.Error)!void {
+    pub fn addModule(self: *Self, module: ShaderModule) (ShaderError || std.mem.Allocator.Error)!void {
         if (gl.glIsShader(module.handle) == 0) return error.InvalidModule;
-        try self.modules.append(try engine.allocator(), module);
+        try self.modules.append(engine.allocator(), module);
     }
 
     pub fn assemble(self: *Self) !void {
@@ -114,7 +113,7 @@ pub const Shader = struct {
 
     pub fn disassemble(self: *Self) void {
         if (!self.assembled) return;
-        for (self.modules.items) |module| {
+        for (self.modules.items) |*module| {
             module.deinit();
         }
         self.modules.clearRetainingCapacity();
