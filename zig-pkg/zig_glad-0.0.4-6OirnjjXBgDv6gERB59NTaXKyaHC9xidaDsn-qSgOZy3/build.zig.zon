@@ -1,0 +1,8 @@
+.{
+    .name = .zig_glad,
+    .version = "0.0.4",
+    .dependencies = .{},
+    .minimum_zig_version = "0.16.0-dev",
+    .paths = .{ "build.zig", "build.zig.zon", "glad" },
+    .fingerprint = 0x382b3ea69eabe8e8,
+}
