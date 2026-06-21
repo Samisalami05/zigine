@@ -7,36 +7,55 @@ pub fn VertexArray(comptime V: type) type {
         const Self = @This();
 
         handle: c_uint,
+        attributes: usize,
 
-        inline fn addAttribs(target: c_uint, obj: type) void {
-            _ = target;
-            const fields = std.meta.fields(obj);
-            inline for (fields) |field| {
-                switch (@typeInfo(field.type)) {
-                    .@"struct" => {
-                        std.debug.print("struct: {s}\n", .{@typeName(field.type)});
-                    },
-                    .array => { // TODO: clump together into one pointer
-                        std.debug.print("array: {s}\n", .{@typeName(field.type)});
-                    },
-                    else => @compileError("Unsupported vertex attribute type"),
-                }
-            }
+        fn typeToGL(type_: type) c_uint {
+            return switch (type_) {
+                i8   => gl.GL_BYTE,
+                i16  => gl.GL_SHORT,
+                i32  => gl.GL_INT,
+                u8   => gl.GL_UNSIGNED_BYTE,
+                u16  => gl.GL_UNSIGNED_SHORT,
+                u32  => gl.GL_UNSIGNED_INT,
+                f32  => gl.GL_FLOAT,
+                bool => gl.GL_BOOL,
+                else => std.math.maxInt(c_uint),
+            };
         }
 
         pub fn init() Self {
             var self: Self = .{
                 .handle = 0,
+                .attributes = 0,
             };
             gl.glGenVertexArrays(1, &self.handle);
-            addAttribs(self.handle, V);
+            //addAttribs(self.handle, 0, V);
             return self;
         }
 
-        pub fn deinit() void {}
+        pub fn deinit(self: *Self) void {
+            gl.glDeleteVertexArrays(1, &self.handle);
+        }
 
-        pub fn update() void {}
+        pub fn addAttribute(self: *Self, count: u32, type_: type, normalized: bool, offset: usize) void {
+            self.bind();
 
-        pub fn bind() void {}
+            gl.glVertexAttribPointer(
+                @intCast(self.attributes),
+                @intCast(count),
+                typeToGL(type_),
+                if (normalized) 1 else 0,
+                @sizeOf(V),
+                @ptrFromInt(offset),
+            );
+
+            gl.glEnableVertexAttribArray(@intCast(self.attributes));
+
+            self.attributes += 1;
+        }
+
+        pub fn bind(self: *Self) void {
+            gl.glBindVertexArray(self.handle);
+        }
     };
 }

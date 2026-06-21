@@ -5,6 +5,7 @@ const gl = @cImport(@cInclude("glad/glad.h"));
 
 pub const g = @import("graphics.zig");
 pub const fm = @import("filemanager.zig");
+pub const lm = @import("linearmath.zig");
 
 pub const EngineError = error{
     FailedToInitializeGLFW, 
@@ -41,8 +42,7 @@ pub fn allocator() std.mem.Allocator {
 }
 
 const Vertex = struct {
-    position: [3]f32,
-    uv: [2]f32,
+    pos: [3]f32,
 };
 
 pub fn run() !void {
@@ -87,17 +87,23 @@ pub fn run() !void {
     var ebo: g.Buffer(u32) = .init(.elementArrayBuffer, .staticDraw);
     defer ebo.deinit();
 
-    var vao: c_uint = undefined;
-    gl.glGenVertexArrays(1, &vao);
-    defer gl.glDeleteVertexArrays(1, &vao);
+    var vao: g.VertexArray(Vertex) = .init();
+    defer vao.deinit();
 
-    gl.glBindVertexArray(vao);
+    //var vao: c_uint = undefined;
+    //gl.glGenVertexArrays(1, &vao);
+    //defer gl.glDeleteVertexArrays(1, &vao);
+
+    //gl.glBindVertexArray(vao);
+    vao.bind();
 
     vbo.upload(&vertices);
     ebo.upload(&indices);
 
-    gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
-    gl.glEnableVertexAttribArray(0);
+    vao.addAttribute(3, f32, false, @offsetOf(Vertex, "pos"));
+
+    //gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
+    //gl.glEnableVertexAttribArray(0);
 
     // VIEWPORT
     var width: c_int = undefined;
@@ -105,19 +111,12 @@ pub fn run() !void {
     glfw.glfwGetWindowSize(window, &width, &height);
     gl.glViewport(0, 0, width, height);
 
-    inline for (std.meta.fields(g.Buffer(u32))) |field| {
-        std.debug.print("{s:10}: {s}\n", .{field.name, @typeName(field.type)});
-    }
-
-    const va: g.VertexArray(Vertex) = .init();
-    _ = va;
-
     while (glfw.glfwWindowShouldClose(window) == 0) {
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0, 0, 0, 1);
 
         shader.bind();
-        gl.glBindVertexArray(vao);
+        vao.bind();
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 
         glfw.glfwSwapBuffers(window);
