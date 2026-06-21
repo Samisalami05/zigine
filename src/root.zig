@@ -3,7 +3,7 @@ const std = @import("std");
 const glfw = @cImport(@cInclude("GLFW/glfw3.h"));
 const gl = @cImport(@cInclude("glad/glad.h"));
 
-pub const core = @import("core.zig");
+pub const g = @import("graphics.zig");
 pub const fm = @import("filemanager.zig");
 
 pub const EngineError = error{
@@ -40,6 +40,11 @@ pub fn allocator() std.mem.Allocator {
     return engine.?.alloc;
 }
 
+const Vertex = struct {
+    position: [3]f32,
+    uv: [2]f32,
+};
+
 pub fn run() !void {
     if (glfw.glfwInit() == 0) return error.FailedToInitializeGLFW;
     defer glfw.glfwTerminate();
@@ -55,26 +60,32 @@ pub fn run() !void {
     if (gl.gladLoadGLLoader(loader) == 0) return error.FailedToInitializeGLAD;
 
     // SHADER
-    const vert: core.ShaderModule = try .init("assets/shaders/basic.vert", core.ShaderType.Vertex);
-    const frag: core.ShaderModule = try .init("assets/shaders/basic.frag", core.ShaderType.Fragment);
+    const vert: g.ShaderModule = try .init("assets/shaders/basic.vert", g.ShaderType.Vertex);
+    const frag: g.ShaderModule = try .init("assets/shaders/basic.frag", g.ShaderType.Fragment);
 
-    var shader: core.Shader = .init();
+    var shader: g.Shader = .init();
     defer shader.deinit();
 
     try shader.addModule(vert);
     try shader.addModule(frag);
     try shader.assemble();
 
-    // VERTICES
-    const verts = [_]f32{
-        -0.5, -0.5, 0.0,
+    const vertices = [_]f32 {
+         0.5,  0.5, 0.0,
          0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0
+        -0.5, -0.5, 0.0,
+        -0.5,  0.5, 0.0
+    };
+    const indices = [_]u32 {
+        0, 1, 3,
+        1, 2, 3
     };
 
-    var vbo: c_uint = undefined;
-    gl.glGenBuffers(1, &vbo);
-    defer gl.glDeleteBuffers(1, &vbo);
+    var vbo: g.Buffer(f32) = .init(.arrayBuffer, .staticDraw);
+    defer vbo.deinit();
+
+    var ebo: g.Buffer(u32) = .init(.elementArrayBuffer, .staticDraw);
+    defer ebo.deinit();
 
     var vao: c_uint = undefined;
     gl.glGenVertexArrays(1, &vao);
@@ -82,11 +93,11 @@ pub fn run() !void {
 
     gl.glBindVertexArray(vao);
 
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo);
-    gl.glBufferData(gl.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), &verts, gl.GL_DYNAMIC_READ);
+    vbo.upload(&vertices);
+    ebo.upload(&indices);
 
     gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
-    gl.glEnableVertexAttribArray(0); 
+    gl.glEnableVertexAttribArray(0);
 
     // VIEWPORT
     var width: c_int = undefined;
@@ -94,13 +105,20 @@ pub fn run() !void {
     glfw.glfwGetWindowSize(window, &width, &height);
     gl.glViewport(0, 0, width, height);
 
+    inline for (std.meta.fields(g.Buffer(u32))) |field| {
+        std.debug.print("{s:10}: {s}\n", .{field.name, @typeName(field.type)});
+    }
+
+    const va: g.VertexArray(Vertex) = .init();
+    _ = va;
+
     while (glfw.glfwWindowShouldClose(window) == 0) {
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0, 0, 0, 1);
 
         shader.bind();
         gl.glBindVertexArray(vao);
-        gl.glDrawArrays(gl.GL_TRIANGLES, 0, 3);
+        gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 
         glfw.glfwSwapBuffers(window);
         glfw.glfwPollEvents();
