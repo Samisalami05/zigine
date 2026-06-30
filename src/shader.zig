@@ -1,6 +1,7 @@
 const std = @import("std");
 const gl = @cImport(@cInclude("glad/glad.h"));
 const engine = @import("root.zig");
+const lm = @import("linearmath.zig");
 
 pub const ShaderError = error {
     FailedToCompile,
@@ -109,6 +110,21 @@ pub const Shader = struct {
             return error.FailedToLinkProgram;
         }
         self.assembled = true;
+    }
+
+    pub fn setF32(self: *Self, name: []const u8, v: f32) void {
+        const loc = gl.glGetUniformLocation(self.handle, name.ptr);
+        gl.glUniform1f(loc, v);
+    }
+
+    pub fn setF64(self: *Self, name: []const u8, v: f64) void {
+        const loc = gl.glGetUniformLocation(self.handle, name.ptr);
+        gl.glUniform1d(loc, v);
+    }
+
+    pub fn setMat4(self: *Self, name: []const u8, v: lm.Mat4) void {
+        const loc = gl.glGetUniformLocation(self.handle, name.ptr);
+        gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, &v.data);
     }
 
     pub fn disassemble(self: *Self) void {

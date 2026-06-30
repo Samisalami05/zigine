@@ -7,6 +7,8 @@ pub const g = @import("graphics.zig");
 pub const fm = @import("filemanager.zig");
 pub const lm = @import("linearmath.zig");
 
+const Image = @import("image.zig").Image;
+
 pub const EngineError = error{
     FailedToInitializeGLFW, 
     FailedToInitializeGLAD,
@@ -45,6 +47,17 @@ const Vertex = struct {
     pos: [3]f32,
 };
 
+fn keyCallback(win: ?*glfw.struct_GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
+    if (action != glfw.GLFW_PRESS) return;
+    _ = win;
+    _ = scancode;
+    _ = mods;
+    switch (key) {
+        glfw.GLFW_KEY_W => std.debug.print("W pressed\n", .{}),
+        else => {},
+    }
+}
+
 pub fn run() !void {
     if (glfw.glfwInit() == 0) return error.FailedToInitializeGLFW;
     defer glfw.glfwTerminate();
@@ -55,6 +68,7 @@ pub fn run() !void {
 
     glfw.glfwMakeContextCurrent(window);
     glfw.glfwSwapInterval(1); // Enable vsync
+    _ = glfw.glfwSetKeyCallback(window, keyCallback);
     
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) return error.FailedToInitializeGLAD;
@@ -104,18 +118,38 @@ pub fn run() !void {
 
     //gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
     //gl.glEnableVertexAttribArray(0);
-
+    
     // VIEWPORT
     var width: c_int = undefined;
     var height: c_int = undefined;
     glfw.glfwGetWindowSize(window, &width, &height);
     gl.glViewport(0, 0, width, height);
 
+    var last: f64 = 0.0;
+
+    const model: lm.Mat4 = .init();
+    const view: lm.Mat4 = .lookat(lm.Vec3.one, .init(1.0, 1.0, 0.0));
+    const proj: lm.Mat4 = .projection(90.0, 16.0 / 9.0, 1, 1000);
+
+    const img = try Image.init("assets/images/brick.png");
+    defer img.deinit();
+
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        const time = glfw.glfwGetTime();
+        const deltaTime = time - last;
+        last = time;
+
+        _ = deltaTime;
+        //std.debug.print("fps: {}                   \r", .{1 / deltaTime});
+
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0, 0, 0, 1);
 
         shader.bind();
+        shader.setMat4("model", model);
+        shader.setMat4("view", view);
+        shader.setMat4("proj", proj);
+
         vao.bind();
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 

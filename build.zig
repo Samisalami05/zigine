@@ -20,6 +20,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    mod.link_libc = true;
+
+    mod.addCSourceFile(.{ .file = b.path("src/stb_image.c") });
+    mod.addIncludePath(b.path("src"));
+
+
     mod.linkLibrary(glfw_dep.artifact("glfw"));
     mod.linkLibrary(glad_dep.artifact("glad"));
 
@@ -37,7 +43,6 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.linkLibrary(glfw_dep.artifact("glfw"));
     exe.root_module.linkLibrary(glad_dep.artifact("glad"));
-
 
     b.installArtifact(exe);
 
