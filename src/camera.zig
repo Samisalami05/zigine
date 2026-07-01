@@ -2,7 +2,7 @@ const std = @import("std");
 const math = std.math;
 const lm = @import("linearmath.zig");
 
-const Camera = struct {
+pub const Camera = struct {
     const Self = @This();
 
     pos: lm.Vec3,

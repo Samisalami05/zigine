@@ -8,6 +8,7 @@ pub const fm = @import("filemanager.zig");
 pub const lm = @import("linearmath.zig");
 
 const Image = @import("image.zig").Image;
+const Camera = @import("camera.zig").Camera;
 
 pub const EngineError = error{
     FailedToInitializeGLFW, 
@@ -47,13 +48,35 @@ const Vertex = struct {
     pos: [3]f32,
 };
 
+var w: bool = false;
+var a: bool = false;
+var s: bool = false;
+var d: bool = false;
+
+
 fn keyCallback(win: ?*glfw.struct_GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
-    if (action != glfw.GLFW_PRESS) return;
+    //if (action != glfw.GLFW_PRESS) return;
     _ = win;
     _ = scancode;
     _ = mods;
     switch (key) {
-        glfw.GLFW_KEY_W => std.debug.print("W pressed\n", .{}),
+        glfw.GLFW_KEY_W => {
+            if (action == glfw.GLFW_PRESS) { w = true; }
+            else if (action == glfw.GLFW_RELEASE) { w = false; }
+        },
+        glfw.GLFW_KEY_A => {
+            if (action == glfw.GLFW_PRESS) { a = true; }
+            else if (action == glfw.GLFW_RELEASE) { a = false; }
+        },
+        glfw.GLFW_KEY_S => {
+            if (action == glfw.GLFW_PRESS) { s = true; }
+            else if (action == glfw.GLFW_RELEASE) {  s = false; }
+        },
+        glfw.GLFW_KEY_D => {
+            if (action == glfw.GLFW_PRESS) { d = true; }
+            else if (action == glfw.GLFW_RELEASE) { d = false; }
+        },
+
         else => {},
     }
 }
@@ -119,36 +142,55 @@ pub fn run() !void {
     //gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
     //gl.glEnableVertexAttribArray(0);
     
-    // VIEWPORT
-    var width: c_int = undefined;
-    var height: c_int = undefined;
-    glfw.glfwGetWindowSize(window, &width, &height);
-    gl.glViewport(0, 0, width, height);
+    var lastWidth: c_int = 0;
+    var lastHeight: c_int = 0;
+    glfw.glfwGetFramebufferSize(window, &lastWidth, &lastHeight);
+    gl.glViewport(0, 0, lastWidth, lastHeight);
 
     var last: f64 = 0.0;
 
     const model: lm.Mat4 = .init();
-    const view: lm.Mat4 = .lookat(lm.Vec3.one, .init(1.0, 1.0, 0.0));
-    const proj: lm.Mat4 = .projection(90.0, 16.0 / 9.0, 1, 1000);
+    var cam: Camera = .init(1280, 720);
 
     const img = try Image.init("assets/images/brick.png");
     defer img.deinit();
 
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        var width: c_int = 0;
+        var height: c_int = 0;
+        glfw.glfwGetFramebufferSize(window, &width, &height);
+        if (width != lastWidth or height != lastHeight) {
+            gl.glViewport(0, 0, width, height);
+            lastWidth = width;
+            lastHeight = height;
+            std.debug.print("resized: {} {}\n", .{width, height});
+        }
+
         const time = glfw.glfwGetTime();
         const deltaTime = time - last;
         last = time;
-
-        _ = deltaTime;
         //std.debug.print("fps: {}                   \r", .{1 / deltaTime});
+
+        if (w) {
+            cam.pos.addAssign(cam.forward().mul(@as(f32, @floatCast(deltaTime))));
+        }
+        if (a) {
+            cam.pos.addAssign(cam.right().inversed().mul(@as(f32, @floatCast(deltaTime))));
+        }
+        if (s) {
+            cam.pos.addAssign(cam.forward().inversed().mul(@as(f32, @floatCast(deltaTime))));
+        }
+        if (d) {
+            cam.pos.addAssign(cam.right().mul(@as(f32, @floatCast(deltaTime))));
+        }
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0, 0, 0, 1);
 
         shader.bind();
         shader.setMat4("model", model);
-        shader.setMat4("view", view);
-        shader.setMat4("proj", proj);
+        shader.setMat4("view", cam.view());
+        shader.setMat4("proj", cam.proj());
 
         vao.bind();
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);

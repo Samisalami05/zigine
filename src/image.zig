@@ -91,7 +91,7 @@ pub const Image = struct {
         stbi.stbi_image_free(self.data);
     }
 
-    pub fn getPixel(self: Self, x: u32, y: u32) u32 {
-        
+    pub fn getPixel(self: Self, x: u32, y: u32) Color {
+        return Color.fromData(self.data + y * self.width + x);
     }
 };
