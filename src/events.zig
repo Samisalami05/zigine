@@ -1,10 +1,20 @@
 const std = @import("std");
 const engine = @import("root.zig");
-const keys = @import("keys.zig");
+const input = @import("input.zig");
 
 pub const KeyEvent = struct {
-    keyCode: keys.Key,
-    action: keys.KeyAction,
+    keyCode: input.Key,
+    action: input.InputAction,
+};
+
+pub const MouseButtonEvent = struct {
+    btn: input.MouseButton,
+    action: input.InputAction,
+};
+
+pub const MouseEvent = union(enum) {
+    button: MouseButtonEvent,
+    // move: TODO move event
 };
 
 pub const WindowEvent = enum {
@@ -13,6 +23,7 @@ pub const WindowEvent = enum {
 
 pub const Event = union(enum) {
     key: KeyEvent,
+    mouse: MouseEvent,
     window: WindowEvent,
     // render: RenderEvent,
 };
@@ -35,6 +46,11 @@ pub const EventManager = struct {
         };
     }
 
+    pub fn deinit(self: *Self) void {
+        self.events.deinit(engine.allocator());
+        self.listeners.deinit(engine.allocator());
+    }
+
     pub fn publish(self: *Self, e: Event) !void {
         try self.events.pushBack(engine.allocator(), e);
     }
@@ -42,7 +58,7 @@ pub const EventManager = struct {
     // Polls all events on each event listener
     pub fn poll(self: *Self) !void {
         while (self.events.len > 0) {
-            const event: Event = try self.events.popFront();
+            const event: Event = self.events.popFront() orelse continue;
             for (self.listeners.items) |listener| {
                 listener.callback(listener.context, event);
             }

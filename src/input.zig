@@ -1,10 +1,22 @@
 const std = @import("std");
 const glfw = @cImport(@cInclude("GLFW/glfw3.h"));
 
-pub const KeyAction = enum(u8) {
+pub const InputAction = enum(u8) {
+    const Self = @This();
+
     down,
     up,
-    press,
+    repeat, // Used for text input
+    unknown, // TODO: remove unknown and return null instead
+
+    pub fn fromGLFW(action: c_int) Self {
+        return switch (action) {
+            glfw.GLFW_PRESS => .down,
+            glfw.GLFW_RELEASE => .up,
+            glfw.GLFW_REPEAT => .repeat,
+            else => .unknown,
+        };
+    }
 };
 
 pub const Key = enum(u8) {
@@ -132,6 +144,7 @@ pub const Key = enum(u8) {
     rightAlt,
     rightSuper,
     menu,
+    unknown, // Should not be used
 
     pub fn count() u32 {
         return @intFromEnum(Key.menu) + 1;
@@ -385,11 +398,14 @@ pub const Key = enum(u8) {
             glfw.GLFW_KEY_RIGHT_ALT => .rightAlt,
             glfw.GLFW_KEY_RIGHT_SUPER => .rightSuper,
             glfw.GLFW_KEY_MENU => .menu,
+            else => .unknown,
         };
     }
 };
 
 pub const MouseButton = enum(u8) {
+    const Self = @This();
+
     mouseButton1,
     mouseButton2,
     mouseButton3,
@@ -398,11 +414,27 @@ pub const MouseButton = enum(u8) {
     mouseButton6,
     mouseButton7,
     mouseButton8,
-    mouseButtonLeft = .mouseButton1,
-    mouseButtonRight = .mouseButton2,
-    mouseButtonMiddle = .mouseButton3,
+    unknown,
+
+    pub const left = .mouseButton1;
+    pub const right = .mouseButton2;
+    pub const middle = .mouseButton3;
 
     pub fn count() u32 {
         return @intFromEnum(MouseButton.mouseButton8) + 1;
+    }
+
+    pub fn fromGLFW(button: c_int) Self {
+        return switch (button) {
+            glfw.GLFW_MOUSE_BUTTON_1 => .mouseButton1,
+            glfw.GLFW_MOUSE_BUTTON_2 => .mouseButton2,
+            glfw.GLFW_MOUSE_BUTTON_3 => .mouseButton3,
+            glfw.GLFW_MOUSE_BUTTON_4 => .mouseButton4,
+            glfw.GLFW_MOUSE_BUTTON_5 => .mouseButton5,
+            glfw.GLFW_MOUSE_BUTTON_6 => .mouseButton6,
+            glfw.GLFW_MOUSE_BUTTON_7 => .mouseButton7,
+            glfw.GLFW_MOUSE_BUTTON_8 => .mouseButton8,
+            else => .unknown,
+        };
     }
 };

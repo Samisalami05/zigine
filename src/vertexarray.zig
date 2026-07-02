@@ -1,5 +1,5 @@
 const std = @import("std");
-const gl = @cImport(@cInclude("glad/glad.h"));
+const gl = @import("c.zig").gl;
 
 // V is vertex type
 pub fn VertexArray(comptime V: type) type {

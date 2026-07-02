@@ -1,5 +1,5 @@
 const std = @import("std");
-const gl = @cImport(@cInclude("glad/glad.h"));
+const gl = @import("c.zig").gl;
 
 pub const BufferType = enum {
     const Self = @This();

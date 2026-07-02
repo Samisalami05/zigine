@@ -1,14 +1,32 @@
 const std = @import("std");
 
-const glfw = @cImport(@cInclude("GLFW/glfw3.h"));
-const gl = @cImport(@cInclude("glad/glad.h"));
-
 pub const g = @import("graphics.zig");
 pub const fm = @import("filemanager.zig");
 pub const lm = @import("linearmath.zig");
-const input = @import("inputman.zig");
-
+pub const inputman = @import("inputman.zig");
 pub const events = @import("events.zig");
+pub const input = @import("input.zig");
+
+const glfw = @import("c.zig").glfw;
+const gl = @import("c.zig").gl;
+
+fn keyCallback(context: *anyopaque, event: events.Event) void {
+    _ = context;
+
+    switch (event) {
+        .key => |e| {
+            if (e.action == .repeat) return;
+            switch (e.keyCode) {
+                input.Key.w => w = e.action == input.InputAction.down,
+                input.Key.a => a = e.action == input.InputAction.down,
+                input.Key.s => s = e.action == input.InputAction.down,
+                input.Key.d => d = e.action == input.InputAction.down,
+                else => {},
+            }
+        },
+        else => return,
+    }
+}
 
 pub const EngineError = error{
     FailedToInitializeGLFW, 
@@ -23,12 +41,12 @@ pub const Engine = struct {
     alloc: std.mem.Allocator,
 
     eventman: events.EventManager,
-    inputman: input.InputManager,
+    inputman: inputman.InputManager,
 };
 
 var engine: ?Engine = null;
 
-pub fn init(args: std.process.Init) void {
+pub fn init(args: std.process.Init) !void {
     std.debug.assert(engine == null);
 
     engine = Engine {
@@ -38,16 +56,28 @@ pub fn init(args: std.process.Init) void {
         .eventman = .init(),
         .inputman = .init(),
     };
+
+    try engine.?.eventman.addListener(.{ .callback = keyCallback, .context = undefined });
 }
 
-fn beginFrame() void {
+fn deinit() void {
+    engine.?.eventman.deinit();
+}
+
+fn beginFrame() !void {
     std.debug.assert(engine != null);
     
 }
 
-fn endFrame() void {
+fn endFrame() !void {
     std.debug.assert(engine != null);
 
+    try engine.?.eventman.poll();
+}
+
+pub fn get() *Engine {
+    std.debug.assert(engine != null);
+    return &engine.?;
 }
 
 pub fn io() std.Io {
@@ -69,34 +99,6 @@ var w: bool = false;
 var a: bool = false;
 var s: bool = false;
 var d: bool = false;
-
-
-fn keyCallback(win: ?*glfw.struct_GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
-    //if (action != glfw.GLFW_PRESS) return;
-    _ = win;
-    _ = scancode;
-    _ = mods;
-    switch (key) {
-        glfw.GLFW_KEY_W => {
-            if (action == glfw.GLFW_PRESS) { w = true; }
-            else if (action == glfw.GLFW_RELEASE) { w = false; }
-        },
-        glfw.GLFW_KEY_A => {
-            if (action == glfw.GLFW_PRESS) { a = true; }
-            else if (action == glfw.GLFW_RELEASE) { a = false; }
-        },
-        glfw.GLFW_KEY_S => {
-            if (action == glfw.GLFW_PRESS) { s = true; }
-            else if (action == glfw.GLFW_RELEASE) {  s = false; }
-        },
-        glfw.GLFW_KEY_D => {
-            if (action == glfw.GLFW_PRESS) { d = true; }
-            else if (action == glfw.GLFW_RELEASE) { d = false; }
-        },
-
-        else => {},
-    }
-}
 
 pub fn messageCallback(source: gl.GLenum, @"type": gl.GLenum, id: gl.GLuint, severity: gl.GLenum, length: gl.GLsizei, message: [*c]const gl.GLchar, userParam: ?*const anyopaque) callconv(.c) void
 {
@@ -120,8 +122,9 @@ pub fn run() !void {
 
     glfw.glfwMakeContextCurrent(window);
     glfw.glfwSwapInterval(1); // Enable vsync
-    _ = glfw.glfwSetKeyCallback(window, keyCallback);
-    
+    _ = glfw.glfwSetKeyCallback(window, inputman.InputManager.keyCallback);
+    _ = glfw.glfwSetMouseButtonCallback(window, inputman.InputManager.mouseButtonCallback);
+
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) return error.FailedToInitializeGLAD;
 
@@ -184,12 +187,8 @@ pub fn run() !void {
     bricks.options.filterMag = .nearest;
     bricks.updateOptions();
 
-    const in: input.InputManager = .init();
-    std.debug.print("{}\n", .{in.isKeyDown(input.Key.a)});
-    
-
     while (glfw.glfwWindowShouldClose(window) == 0) {
-        beginFrame();
+        try beginFrame();
         var width: c_int = 0;
         var height: c_int = 0;
         glfw.glfwGetFramebufferSize(window, &width, &height);
@@ -236,6 +235,9 @@ pub fn run() !void {
 
         glfw.glfwSwapBuffers(window);
         glfw.glfwPollEvents();
-        endFrame();
+
+        try endFrame();
     }
+
+    deinit();
 }
