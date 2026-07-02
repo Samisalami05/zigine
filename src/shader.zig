@@ -112,6 +112,17 @@ pub const Shader = struct {
         self.assembled = true;
     }
 
+    pub fn setI32(self: *Self, name: []const u8, v: i32) void {
+        const loc = gl.glGetUniformLocation(self.handle, name.ptr);
+        gl.glUniform1i(loc, v);
+    }
+    
+    pub fn setU32(self: *Self, name: []const u8, v: u32) void {
+        const loc = gl.glGetUniformLocation(self.handle, name.ptr);
+        gl.glUniform1ui(loc, v);
+    }
+
+
     pub fn setF32(self: *Self, name: []const u8, v: f32) void {
         const loc = gl.glGetUniformLocation(self.handle, name.ptr);
         gl.glUniform1f(loc, v);

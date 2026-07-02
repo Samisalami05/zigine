@@ -1,0 +1,12 @@
+./camera.zig
+./graphics.zig
+./root.zig
+./linearmath.zig
+./main.zig
+./image.zig
+./vertexarray.zig
+./texture.zig
+./buffer.zig
+./core.zig
+./filemanager.zig
+./shader.zig

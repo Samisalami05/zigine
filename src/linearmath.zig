@@ -154,6 +154,12 @@ pub const Vec3 = struct {
     pub const one = Vec3{ .x = 1.0, .y = 1.0, .z = 1.0 };
 
     pub const up = Vec3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+    pub const down = Vec3{ .x = 0.0, .y = -1.0, .z = 0.0 };
+    pub const right = Vec3{ .x = 1.0, .y = 0.0, .z = 0.0 };
+    pub const left = Vec3{ .x = -1.0, .y = 0.0, .z = 0.0 };
+    pub const forward = Vec3{ .x = 0.0, .y = 0.0, .z = 1.0 };
+    pub const backward = Vec3{ .x = 0.0, .y = 0.0, .z = -1.0 };
+
 
     pub fn xy(self: *const Self) Vec2 {
         return Vec2{ self.x, self.y };
@@ -408,6 +414,10 @@ pub const Mat4 = struct {
         self.data[x * 4 + y] = v;
     }
 
+    pub fn addElem(self: *Self, x: usize, y: usize, v: f32) void {
+        self.setElem(x, y, self.getElem(x, y) + v);
+    }
+
     pub fn mul(self: Self, v: Self) Self {
 	const res = init();
 
@@ -422,6 +432,26 @@ pub const Mat4 = struct {
 	}
 
         return res;
+    }
+
+    pub fn translate(self: *Self, v: Vec3) void {
+        self.addElem(3, 0, 
+            self.getElem(0, 0) * v.x +
+            self.getElem(1, 0) * v.y +
+            self.getElem(2, 0) * v.z
+        );
+
+        self.addElem(3, 1, 
+            self.getElem(0, 1) * v.x +
+            self.getElem(1, 1) * v.y +
+            self.getElem(2, 1) * v.z
+        );
+
+        self.addElem(3, 2, 
+            self.getElem(0, 2) * v.x +
+            self.getElem(1, 2) * v.y +
+            self.getElem(2, 2) * v.z
+        );
     }
 
     pub fn rotateX(a: f32) Self {

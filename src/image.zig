@@ -73,6 +73,7 @@ pub const Image = struct {
         var y: c_int = 0;
         var channels: c_int = 0;
 
+        stbi.stbi_set_flip_vertically_on_load(1);
         const data = stbi.stbi_load(path, &x, &y, &channels, 4);
         if (data == null) {
             std.debug.print("Failed: {s}\n", .{stbi.stbi_failure_reason()});

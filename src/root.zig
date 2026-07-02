@@ -6,9 +6,9 @@ const gl = @cImport(@cInclude("glad/glad.h"));
 pub const g = @import("graphics.zig");
 pub const fm = @import("filemanager.zig");
 pub const lm = @import("linearmath.zig");
+const input = @import("inputman.zig");
 
-const Image = @import("image.zig").Image;
-const Camera = @import("camera.zig").Camera;
+pub const events = @import("events.zig");
 
 pub const EngineError = error{
     FailedToInitializeGLFW, 
@@ -21,6 +21,9 @@ pub const EngineError = error{
 pub const Engine = struct {
     io: std.Io,
     alloc: std.mem.Allocator,
+
+    eventman: events.EventManager,
+    inputman: input.InputManager,
 };
 
 var engine: ?Engine = null;
@@ -31,7 +34,20 @@ pub fn init(args: std.process.Init) void {
     engine = Engine {
         .io = args.io,
         .alloc = args.gpa,
+
+        .eventman = .init(),
+        .inputman = .init(),
     };
+}
+
+fn beginFrame() void {
+    std.debug.assert(engine != null);
+    
+}
+
+fn endFrame() void {
+    std.debug.assert(engine != null);
+
 }
 
 pub fn io() std.Io {
@@ -46,6 +62,7 @@ pub fn allocator() std.mem.Allocator {
 
 const Vertex = struct {
     pos: [3]f32,
+    uv: [2]f32,
 };
 
 var w: bool = false;
@@ -81,6 +98,18 @@ fn keyCallback(win: ?*glfw.struct_GLFWwindow, key: c_int, scancode: c_int, actio
     }
 }
 
+pub fn messageCallback(source: gl.GLenum, @"type": gl.GLenum, id: gl.GLuint, severity: gl.GLenum, length: gl.GLsizei, message: [*c]const gl.GLchar, userParam: ?*const anyopaque) callconv(.c) void
+{
+    _ = source;
+    _ = id;
+    _ = length;
+    _ = userParam;
+    if (@"type" != gl.GL_DEBUG_TYPE_ERROR) return;
+    const typeStr = if ( @"type" == gl.GL_DEBUG_TYPE_ERROR ) "GL ERROR" else "GL MESSAGE";
+    std.debug.print("[{s}] {s}\n[TYPE]: 0x{x}, [SEVERITY]: 0x{x}\n\n", 
+      .{ typeStr, message, @"type", severity });
+}
+
 pub fn run() !void {
     if (glfw.glfwInit() == 0) return error.FailedToInitializeGLFW;
     defer glfw.glfwTerminate();
@@ -96,6 +125,9 @@ pub fn run() !void {
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) return error.FailedToInitializeGLAD;
 
+    gl.glEnable(gl.GL_DEBUG_OUTPUT);
+    gl.glDebugMessageCallback(messageCallback, null);
+
     // SHADER
     const vert: g.ShaderModule = try .init("assets/shaders/basic.vert", g.ShaderType.Vertex);
     const frag: g.ShaderModule = try .init("assets/shaders/basic.frag", g.ShaderType.Fragment);
@@ -108,10 +140,10 @@ pub fn run() !void {
     try shader.assemble();
 
     const vertices = [_]f32 {
-         0.5,  0.5, 0.0,
-         0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        -0.5,  0.5, 0.0
+         0.5,  0.5, 0.0, 1.0, 1.0,
+         0.5, -0.5, 0.0, 1.0, 0.0,
+        -0.5, -0.5, 0.0, 0.0, 0.0,
+        -0.5,  0.5, 0.0, 0.0, 1.0
     };
     const indices = [_]u32 {
         0, 1, 3,
@@ -126,22 +158,14 @@ pub fn run() !void {
 
     var vao: g.VertexArray(Vertex) = .init();
     defer vao.deinit();
-
-    //var vao: c_uint = undefined;
-    //gl.glGenVertexArrays(1, &vao);
-    //defer gl.glDeleteVertexArrays(1, &vao);
-
-    //gl.glBindVertexArray(vao);
     vao.bind();
 
     vbo.upload(&vertices);
     ebo.upload(&indices);
 
     vao.addAttribute(3, f32, false, @offsetOf(Vertex, "pos"));
+    vao.addAttribute(2, f32, false, @offsetOf(Vertex, "uv"));
 
-    //gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 3 * @sizeOf(f32), null);
-    //gl.glEnableVertexAttribArray(0);
-    
     var lastWidth: c_int = 0;
     var lastHeight: c_int = 0;
     glfw.glfwGetFramebufferSize(window, &lastWidth, &lastHeight);
@@ -150,17 +174,29 @@ pub fn run() !void {
     var last: f64 = 0.0;
 
     const model: lm.Mat4 = .init();
-    var cam: Camera = .init(1280, 720);
+    var cam: g.Camera = .init(1280, 720);
 
-    const img = try Image.init("assets/images/brick.png");
-    defer img.deinit();
+    var godot = try g.Texture2D.init("assets/images/godot.png");
+    defer godot.deinit();
+    var bricks = try g.Texture2D.init("assets/images/brick.png");
+    defer bricks.deinit();
+    bricks.options.filterMin = .nearest;
+    bricks.options.filterMag = .nearest;
+    bricks.updateOptions();
+
+    const in: input.InputManager = .init();
+    std.debug.print("{}\n", .{in.isKeyDown(input.Key.a)});
+    
 
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        beginFrame();
         var width: c_int = 0;
         var height: c_int = 0;
         glfw.glfwGetFramebufferSize(window, &width, &height);
         if (width != lastWidth or height != lastHeight) {
             gl.glViewport(0, 0, width, height);
+            cam.width = @intCast(width);
+            cam.height = @intCast(height);
             lastWidth = width;
             lastHeight = height;
             std.debug.print("resized: {} {}\n", .{width, height});
@@ -171,18 +207,10 @@ pub fn run() !void {
         last = time;
         //std.debug.print("fps: {}                   \r", .{1 / deltaTime});
 
-        if (w) {
-            cam.pos.addAssign(cam.forward().mul(@as(f32, @floatCast(deltaTime))));
-        }
-        if (a) {
-            cam.pos.addAssign(cam.right().inversed().mul(@as(f32, @floatCast(deltaTime))));
-        }
-        if (s) {
-            cam.pos.addAssign(cam.forward().inversed().mul(@as(f32, @floatCast(deltaTime))));
-        }
-        if (d) {
-            cam.pos.addAssign(cam.right().mul(@as(f32, @floatCast(deltaTime))));
-        }
+        if (w) cam.pos.addAssign(cam.forward().mul(@as(f32, @floatCast(deltaTime))));
+        if (a) cam.pos.addAssign(cam.right().inversed().mul(@as(f32, @floatCast(deltaTime))));
+        if (s) cam.pos.addAssign(cam.forward().inversed().mul(@as(f32, @floatCast(deltaTime))));
+        if (d) cam.pos.addAssign(cam.right().mul(@as(f32, @floatCast(deltaTime))));
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gl.glClearColor(0, 0, 0, 1);
@@ -192,10 +220,22 @@ pub fn run() !void {
         shader.setMat4("view", cam.view());
         shader.setMat4("proj", cam.proj());
 
+        godot.bind(0);
+        shader.setI32("tex", 0);
+
         vao.bind();
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 
+        var model2 = model;
+        model2.translate(.right);
+        shader.setMat4("model", model2);
+        bricks.bind(0);
+        shader.setI32("tex", 0);
+        gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
+
+
         glfw.glfwSwapBuffers(window);
         glfw.glfwPollEvents();
+        endFrame();
     }
 }
