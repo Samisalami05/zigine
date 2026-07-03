@@ -3,6 +3,8 @@ const glfw = @import("c.zig").glfw;
 const events = @import("events.zig");
 const input = @import("input.zig");
 const engine = @import("root.zig");
+const lm = @import("linearmath.zig");
+const core = @import("core.zig");
 
 pub const Window = struct {
     const Self = @This();
@@ -28,6 +30,13 @@ pub const Window = struct {
         _ = glfw.glfwSetCursorPosCallback(self.handle, mousePosCallback);
         _ = glfw.glfwSetScrollCallback(self.handle, mouseScrollCallback);
         _ = glfw.glfwSetFramebufferSizeCallback(self.handle, framebufferSizeCallback);
+    }
+
+    pub fn size(self: Self) core.Size {
+        var width: c_int = 0;
+        var height: c_int = 0;
+        glfw.glfwGetFramebufferSize(self.handle, &width, &height);
+        return .{ .width = @intCast(width), .height = @intCast(height) };
     }
 
     pub fn deinit(self: *Self) void {

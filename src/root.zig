@@ -36,12 +36,15 @@ pub const Engine = struct {
     pub fn init(args: std.process.Init) !Self {
         try initGLFW();
 
+        const win: Window = try .init(1280, 720);
+        const ren: g.Renderer = .init(win);
+
         const self: Self = .{
             .io = args.io,
             .alloc = args.gpa,
 
-            .window = try .init(1280, 720),
-            .renderer = .init(),
+            .window = win,
+            .renderer = ren,
 
             .eventman = .init(),
             .inputman = try .init(),

@@ -2,15 +2,19 @@ const std = @import("std");
 const cam = @import("camera.zig");
 const gl = @import("c.zig").gl;
 const events = @import("events.zig");
+const Window = @import("window.zig").Window;
+
 
 pub const Renderer = struct {
     const Self = @This();
 
     camera: cam.Camera,
 
-    pub fn init() Self {
+    pub fn init(window: Window) Self {
+        const size = window.size();
+
         return .{
-            .camera = .init(1280, 720),
+            .camera = .init(size.width, size.height),
         };
     }
 

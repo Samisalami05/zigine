@@ -1,5 +1,15 @@
 const std = @import("std");
 
+pub const IVec2 = struct {
+    const Self = @This();
+
+    x: i32,
+    y: i32,
+
+    pub const zero = Self { .x = 0, .y = 0 };
+    pub const one = Self { .x = 1, .y = 1 };
+};
+
 pub const Vec2 = struct {
     const Self = @This();
 
