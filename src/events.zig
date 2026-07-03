@@ -1,6 +1,8 @@
 const std = @import("std");
 const engine = @import("root.zig");
 const input = @import("input.zig");
+const glfw = @import("c.zig").glfw;
+const Window = @import("window.zig").Window;
 
 pub const KeyEvent = struct {
     keyCode: input.Key,
@@ -12,13 +14,30 @@ pub const MouseButtonEvent = struct {
     action: input.InputAction,
 };
 
-pub const MouseEvent = union(enum) {
-    button: MouseButtonEvent,
-    // move: TODO move event
+pub const MouseMoveEvent = struct {
+    x: f32,
+    y: f32,
 };
 
-pub const WindowEvent = enum {
-    resize,
+pub const MouseScrollEvent = struct {
+    x: f32,
+    y: f32,
+};
+
+pub const MouseEvent = union(enum) {
+    button: MouseButtonEvent,
+    move: MouseMoveEvent,
+    scroll: MouseScrollEvent,
+};
+
+pub const WindowResizeEvent = struct {
+    width: u32,
+    height: u32,
+};
+
+pub const WindowEvent = union(enum) {
+    resize: WindowResizeEvent,
+    // move: WindowMoveEvent,
 };
 
 pub const Event = union(enum) {
@@ -30,7 +49,12 @@ pub const Event = union(enum) {
 
 pub const Listener = struct {
     context: *anyopaque,
-    callback: *const fn (*anyopaque, Event) void,
+    callback: union(enum) {
+        event: *const fn (*anyopaque, Event) void,
+        key: *const fn (*anyopaque, KeyEvent) void,
+        mouse: *const fn (*anyopaque, MouseEvent) void,
+        window: *const fn (*anyopaque, WindowEvent) void,
+    },
 };
 
 pub const EventManager = struct {
@@ -60,8 +84,32 @@ pub const EventManager = struct {
         while (self.events.len > 0) {
             const event: Event = self.events.popFront() orelse continue;
             for (self.listeners.items) |listener| {
-                listener.callback(listener.context, event);
+                callListener(listener, event);
             }
+        }
+    }
+
+    fn callListener(l: Listener, e: Event) void {
+        switch (l.callback) {
+            .event => |callback| callback(l.context, e),
+            .key => |callback| {
+                switch (e) {
+                    .key => |event| callback(l.context, event),
+                    else => {}
+                }
+            },
+            .mouse => |callback| {
+                switch (e) {
+                    .mouse => |event| callback(l.context, event),
+                    else => {}
+                }
+            },
+            .window => |callback| {
+                switch (e) {
+                    .window => |event| callback(l.context, event),
+                    else => {}
+                }
+            },
         }
     }
 

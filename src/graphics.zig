@@ -31,3 +31,7 @@ pub const Texture2D = tex.Texture2D;
 const cam = @import("camera.zig");
 
 pub const Camera = cam.Camera;
+
+const ren = @import("renderer.zig");
+
+pub const Renderer = ren.Renderer;

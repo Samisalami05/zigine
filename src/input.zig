@@ -1,5 +1,24 @@
 const std = @import("std");
-const glfw = @cImport(@cInclude("GLFW/glfw3.h"));
+const glfw = @import("c.zig").glfw;
+const engine = @import("root.zig");
+
+// Returns whether key is held down
+pub fn isKeyDown(key: Key) bool {
+    const input = engine.inputman();
+    return input.isKeyDown(key);
+}
+
+// Returns whether key is pressed this frame
+pub fn isKeyPressed(key: Key) bool {
+    const input = engine.inputman();
+    return input.isKeyPressed(key);
+}
+
+// Returns whether key is released this frame
+pub fn isKeyReleased(key: Key) bool {
+    const input = engine.inputman();
+    return input.isKeyReleased(key);
+}
 
 pub const InputAction = enum(u8) {
     const Self = @This();
@@ -7,14 +26,13 @@ pub const InputAction = enum(u8) {
     down,
     up,
     repeat, // Used for text input
-    unknown, // TODO: remove unknown and return null instead
 
     pub fn fromGLFW(action: c_int) Self {
         return switch (action) {
             glfw.GLFW_PRESS => .down,
             glfw.GLFW_RELEASE => .up,
             glfw.GLFW_REPEAT => .repeat,
-            else => .unknown,
+            else => .up,
         };
     }
 };
@@ -144,136 +162,9 @@ pub const Key = enum(u8) {
     rightAlt,
     rightSuper,
     menu,
-    unknown, // Should not be used
 
     pub fn count() u32 {
         return @intFromEnum(Key.menu) + 1;
-    }
-
-    pub fn toGLFW(self: Self) c_int {
-        return switch (self) {
-            .space => glfw.GLFW_KEY_SPACE,
-            .apostrophe => glfw.GLFW_KEY_APOSTROPHE,
-            .comma => glfw.GLFW_KEY_COMMA,
-            .minus => glfw.GLFW_KEY_MINUS,
-            .period => glfw.GLFW_KEY_PERIOD,
-            .slash => glfw.GLFW_KEY_SLASH,
-            .zero => glfw.GLFW_KEY_0,
-            .one => glfw.GLFW_KEY_1,
-            .two => glfw.GLFW_KEY_2,
-            .three => glfw.GLFW_KEY_3,
-            .four => glfw.GLFW_KEY_4,
-            .five => glfw.GLFW_KEY_5,
-            .six => glfw.GLFW_KEY_6,
-            .seven => glfw.GLFW_KEY_7,
-            .eight => glfw.GLFW_KEY_8,
-            .nine => glfw.GLFW_KEY_9,
-            .semicolon => glfw.GLFW_KEY_SEMICOLON,
-            .equal => glfw.GLFW_KEY_EQUAL,
-            .a => glfw.GLFW_KEY_A,
-            .b => glfw.GLFW_KEY_B,
-            .c => glfw.GLFW_KEY_C,
-            .d => glfw.GLFW_KEY_D,
-            .e => glfw.GLFW_KEY_E,
-            .f => glfw.GLFW_KEY_F,
-            .g => glfw.GLFW_KEY_G,
-            .h => glfw.GLFW_KEY_H,
-            .i => glfw.GLFW_KEY_I,
-            .j => glfw.GLFW_KEY_J,
-            .k => glfw.GLFW_KEY_K,
-            .l => glfw.GLFW_KEY_L,
-            .m => glfw.GLFW_KEY_M,
-            .n => glfw.GLFW_KEY_N,
-            .o => glfw.GLFW_KEY_O,
-            .p => glfw.GLFW_KEY_P,
-            .q => glfw.GLFW_KEY_Q,
-            .r => glfw.GLFW_KEY_R,
-            .s => glfw.GLFW_KEY_S,
-            .t => glfw.GLFW_KEY_T,
-            .u => glfw.GLFW_KEY_U,
-            .v => glfw.GLFW_KEY_V,
-            .w => glfw.GLFW_KEY_W,
-            .x => glfw.GLFW_KEY_X,
-            .y => glfw.GLFW_KEY_Y,
-            .z => glfw.GLFW_KEY_Z,
-            .leftBracket => glfw.GLFW_KEY_LEFT_BRACKET,
-            .backslash => glfw.GLFW_KEY_BACKSLASH,
-            .rightBracket => glfw.GLFW_KEY_RIGHT_BRACKET,
-            .graveAccent => glfw.GLFW_KEY_GRAVE_ACCENT,
-            .world1 => glfw.GLFW_KEY_WORLD_1,
-            .world2 => glfw.GLFW_KEY_WORLD_2,
-            .escape => glfw.GLFW_KEY_ESCAPE,
-            .enter => glfw.GLFW_KEY_ENTER,
-            .tab => glfw.GLFW_KEY_TAB,
-            .backspace => glfw.GLFW_KEY_BACKSPACE,
-            .insert => glfw.GLFW_KEY_INSERT,
-            .delete => glfw.GLFW_KEY_DELETE,
-            .right => glfw.GLFW_KEY_RIGHT,
-            .left => glfw.GLFW_KEY_LEFT,
-            .down => glfw.GLFW_KEY_DOWN,
-            .up => glfw.GLFW_KEY_UP,
-            .pageUp => glfw.GLFW_KEY_PAGE_UP,
-            .pageDown => glfw.GLFW_KEY_PAGE_DOWN,
-            .home => glfw.GLFW_KEY_HOME,
-            .end => glfw.GLFW_KEY_END,
-            .capsLock => glfw.GLFW_KEY_CAPS_LOCK,
-            .scrollLock => glfw.GLFW_KEY_SCROLL_LOCK,
-            .numLock => glfw.GLFW_KEY_NUM_LOCK,
-            .printScreen => glfw.GLFW_KEY_PRINT_SCREEN,
-            .pause => glfw.GLFW_KEY_PAUSE,
-            .f1 => glfw.GLFW_KEY_F1,
-            .f2 => glfw.GLFW_KEY_F2,
-            .f3 => glfw.GLFW_KEY_F3,
-            .f4 => glfw.GLFW_KEY_F4,
-            .f5 => glfw.GLFW_KEY_F5,
-            .f6 => glfw.GLFW_KEY_F6,
-            .f7 => glfw.GLFW_KEY_F7,
-            .f8 => glfw.GLFW_KEY_F8,
-            .f9 => glfw.GLFW_KEY_F9,
-            .f10 => glfw.GLFW_KEY_F10,
-            .f11 => glfw.GLFW_KEY_F11,
-            .f12 => glfw.GLFW_KEY_F12,
-            .f13 => glfw.GLFW_KEY_F13,
-            .f14 => glfw.GLFW_KEY_F14,
-            .f15 => glfw.GLFW_KEY_F15,
-            .f16 => glfw.GLFW_KEY_F16,
-            .f17 => glfw.GLFW_KEY_F17,
-            .f18 => glfw.GLFW_KEY_F18,
-            .f19 => glfw.GLFW_KEY_F19,
-            .f20 => glfw.GLFW_KEY_F20,
-            .f21 => glfw.GLFW_KEY_F21,
-            .f22 => glfw.GLFW_KEY_F22,
-            .f23 => glfw.GLFW_KEY_F23,
-            .f24 => glfw.GLFW_KEY_F24,
-            .f25 => glfw.GLFW_KEY_F25,
-            .kp0 => glfw.GLFW_KEY_KP_0,
-            .kp1 => glfw.GLFW_KEY_KP_1,
-            .kp2 => glfw.GLFW_KEY_KP_2,
-            .kp3 => glfw.GLFW_KEY_KP_3,
-            .kp4 => glfw.GLFW_KEY_KP_4,
-            .kp5 => glfw.GLFW_KEY_KP_5,
-            .kp6 => glfw.GLFW_KEY_KP_6,
-            .kp7 => glfw.GLFW_KEY_KP_7,
-            .kp8 => glfw.GLFW_KEY_KP_8,
-            .kp9 => glfw.GLFW_KEY_KP_9,
-            .kpDecimal => glfw.GLFW_KEY_KP_DECIMAL,
-            .kpDivide => glfw.GLFW_KEY_KP_DIVIDE,
-            .kpMultiply => glfw.GLFW_KEY_KP_MULTIPLY,
-            .kpSubtract => glfw.GLFW_KEY_KP_SUBTRACT,
-            .kpAdd => glfw.GLFW_KEY_KP_ADD,
-            .kpEnter => glfw.GLFW_KEY_KP_ENTER,
-            .kpEqual => glfw.GLFW_KEY_KP_EQUAL,
-            .leftShift => glfw.GLFW_KEY_LEFT_SHIFT,
-            .leftControl => glfw.GLFW_KEY_LEFT_CONTROL,
-            .leftAlt => glfw.GLFW_KEY_LEFT_ALT,
-            .leftSuper => glfw.GLFW_KEY_LEFT_SUPER,
-            .rightShift => glfw.GLFW_KEY_RIGHT_SHIFT,
-            .rightControl => glfw.GLFW_KEY_RIGHT_CONTROL,
-            .rightAlt => glfw.GLFW_KEY_RIGHT_ALT,
-            .rightSuper => glfw.GLFW_KEY_RIGHT_SUPER,
-            .menu => glfw.GLFW_KEY_MENU,
-            else => glfw.GLFW_KEY_UNKNOWN,
-        };
     }
 
     pub fn fromGLFW(key: c_int) Self {
@@ -398,7 +289,7 @@ pub const Key = enum(u8) {
             glfw.GLFW_KEY_RIGHT_ALT => .rightAlt,
             glfw.GLFW_KEY_RIGHT_SUPER => .rightSuper,
             glfw.GLFW_KEY_MENU => .menu,
-            else => .unknown,
+            else => .menu,
         };
     }
 };
@@ -414,7 +305,6 @@ pub const MouseButton = enum(u8) {
     mouseButton6,
     mouseButton7,
     mouseButton8,
-    unknown,
 
     pub const left = .mouseButton1;
     pub const right = .mouseButton2;
@@ -434,7 +324,7 @@ pub const MouseButton = enum(u8) {
             glfw.GLFW_MOUSE_BUTTON_6 => .mouseButton6,
             glfw.GLFW_MOUSE_BUTTON_7 => .mouseButton7,
             glfw.GLFW_MOUSE_BUTTON_8 => .mouseButton8,
-            else => .unknown,
+            else => .mouseButton8,
         };
     }
 };

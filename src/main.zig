@@ -4,5 +4,6 @@ const engine = @import("opengl_zig");
 
 pub fn main(init: std.process.Init) !void {
     try engine.init(init);
+    defer engine.get().deinit();
     try engine.run();
 }

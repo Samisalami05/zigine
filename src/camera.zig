@@ -10,13 +10,13 @@ pub const Camera = struct {
     yaw: f32,
 
     fov: f32,
-    width: u16,
-    height: u16,
+    width: u32,
+    height: u32,
 
     near: f32,
     far: f32,
 
-    pub fn init(width: u16, height: u16) Self {
+    pub fn init(width: u32, height: u32) Self {
         return .{
             .pos = .zero,
             .pitch = 0,
@@ -29,6 +29,11 @@ pub const Camera = struct {
             .near = 0.1,
             .far = 200,
         };
+    }
+
+    pub fn resize(self: *Self, width: u32, height: u32) void {
+        self.width = width;
+        self.height = height;
     }
 
     pub fn aspect(self: Self) f32 {

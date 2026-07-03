@@ -229,11 +229,16 @@ pub const Vec3 = struct {
             return;
         }
         switch (@typeInfo(T)) {
-            .float, .comptime_float, .comptime_int, .int => {
-                self.x += v;
-                self.y += v;
-                self.z += v;
-            },    
+            .float, .comptime_float => {
+                self.x += @floatCast(v);
+                self.y += @floatCast(v);
+                self.z += @floatCast(v);
+            },
+            .comptime_int, .int => {
+                self.x += @intCast(v);
+                self.y += @intCast(v);
+                self.z += @intCast(v);
+            }, 
             else => @compileError("Vec3.add() not implemented for " ++ @typeName(T)),
         }
     }
@@ -247,11 +252,16 @@ pub const Vec3 = struct {
             return;
         }
         switch (@typeInfo(T)) {
-            .float, .comptime_float, .comptime_int, .int => {
-                self.x -= v;
-                self.y -= v;
-                self.z -= v;
-            },    
+            .float, .comptime_float => {
+                self.x -= @floatCast(v);
+                self.y -= @floatCast(v);
+                self.z -= @floatCast(v);
+            },
+            .comptime_int, .int => {
+                self.x -= @intCast(v);
+                self.y -= @intCast(v);
+                self.z -= @intCast(v);
+            },
             else => @compileError("Vec3.sub() not implemented for " ++ @typeName(T)),
         }
 
@@ -266,11 +276,16 @@ pub const Vec3 = struct {
             return;
         }
         switch (@typeInfo(T)) {
-            .float, .comptime_float, .comptime_int, .int => {
-                self.x *= v;
-                self.y *= v;
-                self.z *= v;
-            },    
+            .float, .comptime_float => {
+                self.x *= @floatCast(v);
+                self.y *= @floatCast(v);
+                self.z *= @floatCast(v);
+            },
+            .comptime_int, .int => {
+                self.x *= @intCast(v);
+                self.y *= @intCast(v);
+                self.z *= @intCast(v);
+            },
             else => @compileError("Vec3.mul() not implemented for " ++ @typeName(T)),
         }
     }
@@ -284,11 +299,19 @@ pub const Vec3 = struct {
             return;
         }
         switch (@typeInfo(T)) {
-            .float, .comptime_float, .comptime_int, .int => {
-                self.x = if (v == 0) self.x else self.x / v;
-                self.y = if (v == 0) self.y else self.y / v;
-                self.z = if (v == 0) self.z else self.z / v;
-            },    
+            .float, .comptime_float => {
+                if (v == 0) return;
+                self.x /= @floatCast(v);
+                self.y /= @floatCast(v);
+                self.z /= @floatCast(v);
+            },
+            .comptime_int, .int => {
+                if (v == 0) return;
+                self.x /= @floatCast(v);
+                self.y /= @floatCast(v);
+                self.z /= @floatCast(v);
+            },
+
             else => @compileError("Vec3.add() not implemented for " ++ @typeName(T)),
         }
     }
