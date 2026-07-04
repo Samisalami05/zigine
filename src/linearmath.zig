@@ -3,8 +3,8 @@ const std = @import("std");
 pub const IVec2 = struct {
     const Self = @This();
 
-    x: i32,
-    y: i32,
+    x: i32 = 0,
+    y: i32 = 0,
 
     pub const zero = Self { .x = 0, .y = 0 };
     pub const one = Self { .x = 1, .y = 1 };
@@ -13,8 +13,8 @@ pub const IVec2 = struct {
 pub const Vec2 = struct {
     const Self = @This();
 
-    x: f32,
-    y: f32,
+    x: f32 = 0,
+    y: f32 = 0,
 
     pub const zero = Vec2{ .x = 0.0, .y = 0.0 };
     pub const one = Vec2{ .x = 1.0, .y = 1.0 };
@@ -148,9 +148,9 @@ pub const Vec2 = struct {
 pub const Vec3 = struct {
     const Self = @This();
 
-    x: f32,
-    y: f32,
-    z: f32,
+    x: f32 = 0,
+    y: f32 = 0,
+    z: f32 = 0,
 
     pub fn init(x: f32, y: f32, z: f32) Self {
         return Self {
@@ -358,10 +358,10 @@ pub const Vec3 = struct {
 pub const Vec4 = struct {
     const Self = @This();
 
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
+    x: f32 = 0,
+    y: f32 = 0,
+    z: f32 = 0,
+    w: f32 = 0,
 
     pub fn init(x: f32, y: f32, z: f32, w: f32) Self {
         return .{
